@@ -74,21 +74,24 @@ def generate_run_calendar(
     # Simulate getting the holiday metadata from API
     logging.info("Get holiday metadata")
     # holiday = hd.Holiday.from_json(holiday_date=cycle_date)
-    holidays = hd.get_all_holidays_from_json()
+    holidays = hd.get_all_holidays_from_json() + hd.get_weekend_holidays(
+        start_date=calendar_start_date, end_date=calendar_end_date
+    )
 
     run_calendar = []
+    date_format = "%Y-%m-%d"
     for dt in rrule.rrule(
         rrule.DAILY,
-        dtstart=datetime.strptime(calendar_start_date, "%Y-%m-%d"),
-        until=datetime.strptime(calendar_end_date, "%Y-%m-%d"),
+        dtstart=datetime.strptime(calendar_start_date, date_format),
+        until=datetime.strptime(calendar_end_date, date_format),
     ):
 
         if not check_if_cycle_date_is_holiday(
-            cycle_date=dt.strftime("%Y-%m-%d"), schedule=schedule, holidays=holidays
+            cycle_date=dt.strftime(date_format), schedule=schedule, holidays=holidays
         ):
             rc_item = {
                 "schedule_id": schedule.schedule_id,
-                "calendar_date": dt.strftime("%Y-%m-%d"),
+                "calendar_date": dt.strftime(date_format),
             }
             run_calendar.append(rc_item)
 
