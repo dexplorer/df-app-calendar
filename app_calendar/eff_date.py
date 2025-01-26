@@ -168,7 +168,7 @@ def get_cur_eff_date(schedule_id: str) -> str:
         df_run_calendar=df_run_calendar,
         offset=offset,
     )
-    logging.info("Current effective date - %s", eff_date)
+    logging.info("Current effective date: %s", eff_date)
     return eff_date
 
 
@@ -188,14 +188,14 @@ def get_prior_eff_dates(
         get_prior_eff_date(cycle_date, snapshot.snapshot, df_run_calendar, offset)
         for snapshot in snapshots
     ]
-    logging.info("Prior effective dates - %s", prior_eff_dates)
+    logging.info("Prior effective dates: %s", prior_eff_dates)
     return prior_eff_dates
 
 
 def get_prior_eff_date(
     cycle_date: str, snapshot: str, df_run_calendar: pd.DataFrame, offset: int
 ) -> str:
-    logging.debug("prior snapshot - %s", snapshot)
+    logging.debug("Prior snapshot: %s", snapshot)
 
     if snapshot == "t-1d":
         # df is sorted on the cycle date and so grab the last but one row's index name (cycle date).
