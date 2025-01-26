@@ -3,8 +3,9 @@ from metadata import dataset as ds
 from metadata import holiday as hd
 from metadata import schedule as sh
 from functools import lru_cache
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import rrule
+import pandas as pd
 
 import logging
 
@@ -22,12 +23,10 @@ def get_cur_cycle_date() -> str:
     # logging.debug("Reading the cycle date file {src_file_path}")
     # src_file_records = uff.uf_read_delim_file_to_list_of_dict(file_path=src_file_path)
     src_file_records = [{"cycle_date": "2024-12-26"}]
-    print(src_file_records)
-    print(len(src_file_records))
     try:
         if src_file_records and len(src_file_records) == 1:
             cycle_date = src_file_records[0]["cycle_date"]
-            print(cycle_date)
+            logging.info("Cycle date: %s", cycle_date)
             if check_if_valid_date(given_date=cycle_date, date_format="%Y-%m-%d"):
                 return cycle_date
         else:
@@ -58,12 +57,19 @@ def check_if_cycle_date_is_holiday(
     return holiday_flag
 
 
+@lru_cache(maxsize=128)
 def generate_run_calendar(
-    schedule: sh.Schedule, calendar_start_date: str, calendar_end_date: str
-):
+    schedule_id: str,
+    calendar_start_date: str = "2024-11-28",
+    calendar_end_date: str = "2024-12-31",
+) -> pd.DataFrame:
     """
     Generate run calendar for the schedule.
     """
+
+    # Simulate getting the schedule metadata from API
+    logging.info("Get schedule metadata")
+    schedule = sh.Schedule.from_json(schedule_id)
 
     # Simulate getting the holiday metadata from API
     logging.info("Get holiday metadata")
@@ -76,8 +82,6 @@ def generate_run_calendar(
         dtstart=datetime.strptime(calendar_start_date, "%Y-%m-%d"),
         until=datetime.strptime(calendar_end_date, "%Y-%m-%d"),
     ):
-        if dt.strftime("%d") == "01":
-            print(f"Working on date {dt}")
 
         if not check_if_cycle_date_is_holiday(
             cycle_date=dt.strftime("%Y-%m-%d"), schedule=schedule, holidays=holidays
@@ -88,27 +92,46 @@ def generate_run_calendar(
             }
             run_calendar.append(rc_item)
 
-    return run_calendar
+    # Prepare the dataframe
+    df_run_calendar = (
+        pd.DataFrame.from_records(run_calendar)
+        # Sort by calendar_date to ensure order
+        .sort_values(by="calendar_date", ascending=True)
+        # Set calendar_date as index
+        .set_index("calendar_date")
+    )
+
+    return df_run_calendar
 
 
-def get_eff_date_from_run_calendar(cycle_date: str, run_calendar: list, offset: int):
+def get_eff_date_from_run_calendar(
+    cycle_date: str, df_run_calendar: pd.DataFrame, offset: int
+):
+
     eff_date = None
-    for idx, rc_item in enumerate(run_calendar):
-        if rc_item["calendar_date"] == cycle_date:
-            eff_rc_item = run_calendar[idx + offset]
-            eff_date = eff_rc_item["calendar_date"]
 
     try:
-        if not eff_date:
-            raise ValueError(
-                "Cycle date is not found in the run calendar (i.e. holiday)"
-            )
-        elif not check_if_valid_date(given_date=eff_date, date_format="%Y-%m-%d"):
-            raise ValueError(
-                "Effective date is either invalid or not in the expected YYYY-MM-DD format."
-            )
+        if cycle_date not in df_run_calendar.index:
+            raise ValueError("Cycle date is not found in the run calendar.")
+        elif not isinstance(offset, int):
+            raise ValueError("Run calendar offset is invalid.")
         else:
-            return eff_date
+            # get_loc returns ordinal index (i.e location) of the index label (cycle_date)
+            # derive the effective date index using offset
+            eff_date_idx = df_run_calendar.index.get_loc(cycle_date) + offset
+            # get the effective date using the derived index
+            # iloc returns the df item based on ordinal index (i.e. location)
+            # name returns index label (which is cycle_date as the df is indexed by cycle_date)
+            eff_date = df_run_calendar.iloc[eff_date_idx].name
+            logging.info("Cycle date: %s, Effective date: %s", cycle_date, eff_date)
+
+            if check_if_valid_date(given_date=eff_date, date_format="%Y-%m-%d"):
+                return eff_date
+            else:
+                raise ValueError(
+                    "Effective date is either invalid or not in the expected YYYY-MM-DD format."
+                )
+
     except ValueError as error:
         logging.error(error)
         raise
@@ -116,53 +139,95 @@ def get_eff_date_from_run_calendar(cycle_date: str, run_calendar: list, offset: 
 
 def check_if_valid_date(given_date: str, date_format: str):
     try:
-        if given_date and isinstance(datetime.strptime(given_date, date_format), datetime):
+        if given_date and isinstance(
+            datetime.strptime(given_date, date_format), datetime
+        ):
             return True
+        else:
+            raise ValueError("Given date is invalid.")
     except ValueError as error:
+        logging.info(error)
+        # It is intentional to not raise an exception as it is an utility function.
         return False
+
 
 def get_cur_eff_date(schedule_id: str) -> str:
     # Simulate getting the cycle date from API
     # Run this from the parent app
     cycle_date = get_cur_cycle_date()
 
+    df_run_calendar = generate_run_calendar(schedule_id=schedule_id)
+
     # Simulate getting the schedule metadata from API
     logging.info("Get schedule metadata")
     schedule = sh.Schedule.from_json(schedule_id)
+    offset = schedule.run_calendar_offset
 
-    try:
-        calendar_start_date = "2024-01-01"
-        calendar_end_date = "2024-12-31"
-        run_calendar = generate_run_calendar(
-            schedule=schedule,
-            calendar_start_date=calendar_start_date,
-            calendar_end_date=calendar_end_date,
-        )
-        eff_date = get_eff_date_from_run_calendar(
-            cycle_date=cycle_date,
-            run_calendar=run_calendar,
-            offset=schedule.run_calendar_offset,
-        )
-        return eff_date
-        # return datetime.strptime("2024-12-26", "%Y-%m-%d")
-    except ValueError as error:
-        logging.error(error)
-        raise
+    eff_date = get_eff_date_from_run_calendar(
+        cycle_date=cycle_date,
+        df_run_calendar=df_run_calendar,
+        offset=offset,
+    )
+    logging.info("Current effective date - %s", eff_date)
+    return eff_date
 
 
-def get_prior_eff_date(cur_eff_date: str, snapshot: str) -> datetime.date:
+def get_prior_eff_dates(
+    schedule_id: str, snapshots: list[ds.DataSnapshot]
+) -> list[str]:
+    cycle_date = get_cur_cycle_date()
+
+    df_run_calendar = generate_run_calendar(schedule_id=schedule_id)
+
+    # Simulate getting the schedule metadata from API
+    logging.info("Get schedule metadata")
+    schedule = sh.Schedule.from_json(schedule_id)
+    offset = schedule.run_calendar_offset
+
+    prior_eff_dates = [
+        get_prior_eff_date(cycle_date, snapshot.snapshot, df_run_calendar, offset)
+        for snapshot in snapshots
+    ]
+    logging.info("Prior effective dates - %s", prior_eff_dates)
+    return prior_eff_dates
+
+
+def get_prior_eff_date(
+    cycle_date: str, snapshot: str, df_run_calendar: pd.DataFrame, offset: int
+) -> str:
     logging.debug("prior snapshot - %s", snapshot)
 
-    if cur_eff_date == "2024-12-26":
-        if snapshot == "t-1d":
-            prior_eff_date = "2024-12-25"
-        elif snapshot == "lme":
-            prior_eff_date = "2024-11-30"
-        else:
-            prior_eff_date = "2024-12-25"
-        return prior_eff_date
+    if snapshot == "t-1d":
+        # df is sorted on the cycle date and so grab the last but one row's index name (cycle date).
+        # Slice the dataframe till the cycle date.
+        # iloc[-2] gets the last but one row.
+        tm1d_cycle_date = df_run_calendar.loc[:cycle_date].iloc[-2].name
+        prior_cycle_date = tm1d_cycle_date
+
+    elif snapshot == "lme":
+        # Derive the first and last dates of the previous month
+        date_format = "%Y-%m-%d"
+        cycle_datetime_obj = datetime.strptime(cycle_date, date_format)
+        first_day_of_this_month = cycle_datetime_obj.replace(day=1)
+        last_day_of_prev_month = first_day_of_this_month - timedelta(days=1)
+        first_day_of_prev_month = last_day_of_prev_month.replace(day=1)
+        last_day_of_prev_month_str = last_day_of_prev_month.strftime(date_format)
+        first_day_of_prev_month_str = first_day_of_prev_month.strftime(date_format)
+        # Select rows for previous month
+        df_run_calendar_prev_month = df_run_calendar[
+            first_day_of_prev_month_str:last_day_of_prev_month_str
+        ]
+
+        lme_cycle_date = df_run_calendar_prev_month.iloc[-1].name
+        prior_cycle_date = lme_cycle_date
+
     else:
-        return cur_eff_date
+        prior_cycle_date = cycle_date
+
+    prior_eff_date = get_eff_date_from_run_calendar(
+        prior_cycle_date, df_run_calendar, offset
+    )
+    return prior_eff_date
 
 
 def fmt_date_as_yyyymmdd(in_date: datetime.date) -> str:
@@ -171,12 +236,3 @@ def fmt_date_as_yyyymmdd(in_date: datetime.date) -> str:
 
 def fmt_date_str_as_yyyymmdd(in_date_yyyy_mm_dd: str) -> str:
     return in_date_yyyy_mm_dd.replace("_", "").replace("-", "")
-
-
-def get_prior_eff_dates(schedule_id: str, snapshots: list[ds.DataSnapshot]):
-    cur_eff_date = get_cur_eff_date(schedule_id=schedule_id)
-    prior_eff_dates = [
-        get_prior_eff_date(cur_eff_date, snapshot.snapshot) for snapshot in snapshots
-    ]
-    logging.debug("Prior effective dates - %s", prior_eff_dates)
-    return prior_eff_dates

@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="app_calendar",
-    version="1.0.0",
+    version="1.0.2",
     scripts=["./scripts/app_calendar"],
     author="Rajakumaran Arivumani",
     description="app_calendar python package install",

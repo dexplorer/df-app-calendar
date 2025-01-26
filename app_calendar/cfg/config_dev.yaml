@@ -1,7 +1,0 @@
-appName: app_calendar
-logLevel: INFO
-CONFIG:
-  log_file_path: "APP_ROOT_DIR/log"
-  source_file_path: "APP_ROOT_DIR/data"
-  plot_path: "APP_ROOT_DIR/plot"
-  
