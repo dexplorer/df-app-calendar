@@ -179,7 +179,9 @@ def get_cur_eff_date(schedule_id: str, cycle_date: str = "") -> str:
 def get_prior_eff_dates(
     schedule_id: str, snapshots: list[ds.DataSnapshot], cycle_date: str = ""
 ) -> list[str]:
-    cycle_date = get_cur_cycle_date()
+
+    if not cycle_date:
+        cycle_date = get_cur_cycle_date()
 
     df_run_calendar = generate_run_calendar(schedule_id=schedule_id)
 
