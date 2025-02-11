@@ -1,21 +1,17 @@
-install: requirements.txt 
+install: pyproject.toml
 	pip install --upgrade pip &&\
-	pip install -r requirements.txt
-
-setup: 
-	python setup.py install
+	pip install --editable . 
+	pip install .[test]
 
 lint:
-	pylint --disable=R,C *.py &&\
-	pylint --disable=R,C app_calendar/*.py &&\
-	pylint --disable=R,C app_calendar/tests/*.py
+	pylint --disable=R,C src/app_calendar/*.py &&\
+	pylint --disable=R,C tests/*.py
 
 test:
-	python -m pytest -vv --cov=app_calendar app_calendar/tests
+	python -m pytest -vv --cov=app_calendar tests
 
 format:
-	black *.py &&\
-	black app_calendar/*.py
-	black app_calendar/tests/*.py
+	black src/app_calendar/*.py &&\
+	black tests/*.py
 
-all: install setup lint format test 
+all: install lint format test 
