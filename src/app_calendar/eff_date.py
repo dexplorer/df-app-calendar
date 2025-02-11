@@ -1,5 +1,6 @@
 # from utils import file_io as uff
-from metadata import dataset as ds
+# from metadata import dataset as ds
+from metadata import dataset_dq_model_parms as dqmp
 from metadata import holiday as hd
 from metadata import schedule as sh
 from functools import lru_cache
@@ -177,7 +178,7 @@ def get_cur_eff_date(schedule_id: str, cycle_date: str = "") -> str:
 
 
 def get_prior_eff_dates(
-    schedule_id: str, snapshots: list[ds.DataSnapshot], cycle_date: str = ""
+    schedule_id: str, snapshots: list[dqmp.DataSnapshot], cycle_date: str = ""
 ) -> list[str]:
 
     if not cycle_date:
