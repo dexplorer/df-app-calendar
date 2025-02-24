@@ -18,7 +18,7 @@ This package implements the application calendar. It generates the application r
 {
     "schedules": [
       {
-        "schedule_id": "1",
+        "schedule_id": "schedule_1",
         "application_id": "1",
         "schedule_desc": "Monday to Friday excluding NYSE holidays",
         "schedule_frequency": "daily",
@@ -29,7 +29,7 @@ This package implements the application calendar. It generates the application r
         ]
       },
       {
-        "schedule_id": "2",
+        "schedule_id": "schedule_2",
         "application_id": "1",
         "schedule_desc": "Monday to Friday excluding Federal Bank holidays",
         "schedule_frequency": "daily",
@@ -40,7 +40,7 @@ This package implements the application calendar. It generates the application r
         ]
       },
       {
-        "schedule_id": "3",
+        "schedule_id": "schedule_3",
         "application_id": "1",
         "schedule_desc": "Calendar Month End",
         "schedule_frequency": "monthly",
@@ -49,7 +49,7 @@ This package implements the application calendar. It generates the application r
         ]
       },
       {
-        "schedule_id": "4",
+        "schedule_id": "schedule_4",
         "application_id": "1",
         "schedule_desc": "Business Month End excluding NYSE holidays and weekdns",
         "schedule_frequency": "monthly",
@@ -61,6 +61,7 @@ This package implements the application calendar. It generates the application r
       }
     ]
   }
+  
   
   ```
 
