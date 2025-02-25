@@ -1,7 +1,7 @@
 install: pyproject.toml
 	pip install --upgrade pip &&\
 	pip install --editable . 
-	pip install .[test]
+	pip install --editable .[test]
 
 lint:
 	pylint --disable=R,C src/app_calendar/*.py &&\

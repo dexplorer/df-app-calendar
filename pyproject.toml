@@ -22,8 +22,8 @@ dependencies = [
   "pandas == 2.1.4",
   "python-dateutil", 
   # my packages
-  "utils @ git+https://github.com/dexplorer/utils",
-  "metadata @ git+https://github.com/dexplorer/df-metadata",
+  #"utils @ git+https://github.com/dexplorer/utils",
+  #"metadata @ git+https://github.com/dexplorer/df-metadata",
 ]
 keywords = ["data", "profile", "etl", "elt", "framework", "governance"]
 
